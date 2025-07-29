@@ -9,6 +9,7 @@ contract CounterTest is Test {
 
     function setUp() public {
         counter = new Counter();
+        console.log("Contract deployed at:", address(counter));
         counter.setNumber(0);
     }
 
