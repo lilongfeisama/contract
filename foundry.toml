@@ -8,9 +8,11 @@ libs = ["lib"]
 mainnet = "${RPC_URL_MAINNET}"
 sepolia = "${RPC_URL_SEPOLIA}"
 local = "${RPC_URL_LOCAL}"
+fuji = "https://api.avax-test.network/ext/bc/C/rpc"
 
 [etherscan]
 mainnet = { key = "${ETHERSCAN_API_KEY}" }
 sepolia = { key = "${ETHERSCAN_API_KEY}" }
+fuji = { key = "${SNOWTRACE_API_KEY}", url = "https://api-testnet.snowtrace.io/api" }
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
