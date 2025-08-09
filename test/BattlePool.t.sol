@@ -9,7 +9,7 @@ contract BattlePoolTest is Test {
     BattlePool internal pool;
     StoryNFT internal story;
 
-    address internal admin; // 本测试合约将作为 root admin
+    address internal admin; // 使用外部地址作为 root admin，避免向本测试合约转账
     address internal storyOwner;
     address internal alice;
     address internal bob;
@@ -20,7 +20,7 @@ contract BattlePoolTest is Test {
     uint256 internal storyTokenId;
 
     function setUp() public {
-        admin = address(this);
+        admin = makeAddr("admin");
         storyOwner = makeAddr("storyOwner");
         alice = makeAddr("alice");
         bob = makeAddr("bob");
@@ -33,17 +33,17 @@ contract BattlePoolTest is Test {
 
         // 部署 StoryNFT 并铸造一个故事 NFT 给 storyOwner
         story = new StoryNFT(admin);
-        vm.prank(storyOwner);
-        // 由 storyOwner 直接铸造不行（需要 ADMIN_ROLE），因此由 admin 铸造给 storyOwner
-        vm.startPrank(admin);
+        // 由 admin 铸造给 storyOwner（需要 ADMIN_ROLE）
+        vm.prank(admin);
         storyTokenId = story.mint(storyOwner, "ipfs-cid-1");
-        vm.stopPrank();
 
         // 部署 BattlePool，并配置费率与故事合约
         pool = new BattlePool(admin);
+        vm.startPrank(admin);
         pool.setStoryNftContract(address(story));
         pool.setPlatformFeeBps(PLATFORM_FEE_BPS);            // root admin 接口
         pool.setDefaultStoryOwnerFeeBps(STORY_FEE_BPS);      // admin 接口
+        vm.stopPrank();
     }
 
     function test_EndToEnd_Flow_DistributeAndWithdraw() public {
@@ -51,6 +51,7 @@ contract BattlePoolTest is Test {
         address[] memory players = new address[](2);
         players[0] = alice;
         players[1] = bob;
+        vm.prank(admin);
         uint256 matchId = pool.createMatch(players, storyTokenId);
 
         // 初始回合为 1，未结束
@@ -69,6 +70,7 @@ contract BattlePoolTest is Test {
         assertEq(pool.getRoundBet(matchId, 1, bob), 3 ether);
 
         // 3) 推进到下一回合（不再追加下注，仅测试推进）
+        vm.prank(admin);
         pool.advanceToNextRound(matchId);
         assertEq(pool.getCurrentRound(matchId), 2);
 
@@ -80,6 +82,7 @@ contract BattlePoolTest is Test {
         scores[0] = 30;
         scores[1] = 70;
 
+        vm.prank(admin);
         pool.endMatch(matchId, endPlayers, scores);
 
         // 比赛应标记为结束
@@ -90,8 +93,8 @@ contract BattlePoolTest is Test {
         // 平台费 = 4e18 * 5% = 0.2 ether
         // 故事费 = 4e18 * 3% = 0.12 ether
         // 玩家可分配 = 3.68 ether
-        uint256 platformFee = (4 ether * PLATFORM_FEE_BPS) / 10_000; // 0.2 ether
-        uint256 storyFee = (4 ether * STORY_FEE_BPS) / 10_000;       // 0.12 ether
+        uint256 platformFee = (4 ether * uint256(PLATFORM_FEE_BPS)) / 10000; // 0.2 ether
+        uint256 storyFee = (4 ether * uint256(STORY_FEE_BPS)) / 10000;       // 0.12 ether
         uint256 poolForPlayers = 4 ether - platformFee - storyFee;   // 3.68 ether
         uint256 aliceShare = (poolForPlayers * 30) / 100;            // 1.104 ether
         uint256 bobShare = (poolForPlayers * 70) / 100;              // 2.576 ether

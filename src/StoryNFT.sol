@@ -30,6 +30,16 @@ contract StoryNFT is ERC721, AccessControl {
         _grantRole(ADMIN_ROLE, newAdmin);
     }
 
+    // 多重继承需要显式合并 ERC721 与 AccessControl 的 ERC165 支持
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC721, AccessControl)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
+    }
+
     // 铸造并设置 IPFS CID，tokenId 自增
     function mint(address to, string calldata ipfsCid)
         external
